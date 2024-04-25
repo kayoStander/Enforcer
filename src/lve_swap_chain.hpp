@@ -14,7 +14,7 @@ namespace lve {
 
 class lveSwapChain {
  public:
-  static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+  static constexpr int MAX_FRAMES_IN_FLIGHT = 1;
 
   lveSwapChain(lveDevice &deviceRef, VkExtent2D windowExtent);
   lveSwapChain(lveDevice &deviceRef, VkExtent2D windowExtent,std::shared_ptr<lveSwapChain> previous);
@@ -40,6 +40,11 @@ class lveSwapChain {
   VkResult acquireNextImage(uint32_t *imageIndex);
   VkResult submitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex);
 
+  bool compareSwapFormat(const lveSwapChain& swapchain) const {
+	return swapchain.swapChainDepthFormat == swapChainDepthFormat &&
+		swapchain.swapChainImageFormat == swapChainImageFormat;
+  }
+
  private:
   void init();
   void createSwapChain();
@@ -57,6 +62,7 @@ class lveSwapChain {
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
   VkFormat swapChainImageFormat;
+  VkFormat swapChainDepthFormat;
   VkExtent2D swapChainExtent;
 
   std::vector<VkFramebuffer> swapChainFramebuffers;

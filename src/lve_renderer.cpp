@@ -30,10 +30,11 @@ namespace lve{
 			vkDeviceWaitIdle(lvedevice.device());
 			lveswapchain = std::make_unique<lveSwapChain>(lvedevice, extent);
 		}else{
-			lveswapchain = std::make_unique<lveSwapChain>(lvedevice, extent, std::move(lveswapchain));
-			if (lveswapchain->imageCount() != commandbuffers.size()){
-				freeCommandBuffers();
-				createCommandBuffers();
+			std::shared_ptr<lveSwapChain> oldSwapChain = std::move(lveswapchain);
+			lveswapchain = std::make_unique<lveSwapChain>(lvedevice, extent, oldSwapChain);
+
+			if (!oldSwapChain->compareSwapFormat(*lveswapchain.get())){
+				throw std::runtime_error("swap chain format has chnged");
 			}
 		}
 		// ,,,
@@ -48,7 +49,7 @@ namespace lve{
 	}
 
 	void lveRenderer::createCommandBuffers(){
-		commandbuffers.resize(lveswapchain->imageCount());
+		commandbuffers.resize(lveSwapChain::MAX_FRAMES_IN_FLIGHT);
 
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -81,10 +82,10 @@ namespace lve{
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS){
-			throw std::runtime_error("failed to begin recording command buffer");
+		
+		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
+			throw std::runtime_error("failed to begin recording command buffer!");
 		}
-
 		return commandBuffer;
 	}	
 	void lveRenderer::endFrame(){
@@ -107,6 +108,7 @@ namespace lve{
 		}
 
 		isFrameStarted = false;
+		currentFrameIndex = (currentImageIndex+1) % lveSwapChain::MAX_FRAMES_IN_FLIGHT;
 	}
 	void lveRenderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer){
 		assert(isFrameStarted && "cant call beginswapchainrenderpass if frame is not in progress");

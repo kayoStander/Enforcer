@@ -18,11 +18,18 @@ namespace lve{
 			lveRenderer &operator=(const lveRenderer&)=delete;
 
 			VkRenderPass getSwapChainRenderPass() const {return lveswapchain->getRenderPass();}
+			float getAspectRatio() const {return lveswapchain->extentAspectRatio();}
 			bool isFrameInProgress() const {return isFrameStarted;}
 
 			VkCommandBuffer getCurrentCommandBuffer() const {
 				assert(isFrameStarted && "cannot get commandbuffer when frame is not on progress");
-				return commandbuffers[currentImageIndex];}
+				return commandbuffers[currentFrameIndex];}
+
+			int getFrameIndex() const {
+				assert(isFrameStarted && "cannot call while frame is not on progress");
+
+				return currentFrameIndex;
+			}
 
 			VkCommandBuffer beginFrame();
 			void endFrame();
@@ -40,6 +47,8 @@ namespace lve{
 			std::vector<VkCommandBuffer> commandbuffers;
 
 			uint32_t currentImageIndex;
+			int currentFrameIndex;
 			bool isFrameStarted = false;
+			//uint32_t deltaTime; do in future, lastframe-nowframe
 	};
 }

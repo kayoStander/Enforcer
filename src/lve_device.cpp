@@ -4,6 +4,7 @@
 #include <cstring>
 #include <iostream>
 #include <set>
+#include <stdexcept>
 #include <unordered_set>
 
 namespace lve {
@@ -448,7 +449,9 @@ VkCommandBuffer lveDevice::beginSingleTimeCommands() {
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+  if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS){
+	throw std::runtime_error("fuck it");
+  }
   return commandBuffer;
 }
 
