@@ -1,54 +1,54 @@
 #pragma once
 
+#include "lve_device.hpp"
 #include "lve_swap_chain.hpp"
 #include "lve_window.hpp"
-#include "lve_device.hpp"
 
+// std
+#include <cassert>
 #include <memory>
 #include <vector>
-#include <cassert>
 
-namespace lve{
-	class lveRenderer{
-		public:
-			lveRenderer(lveWindow& window, lveDevice& device);
-			~lveRenderer();
+namespace lve {
+class LveRenderer {
+ public:
+  LveRenderer(LveWindow &window, LveDevice &device);
+  ~LveRenderer();
 
-			lveRenderer(const lveRenderer&)=delete;
-			lveRenderer &operator=(const lveRenderer&)=delete;
+  LveRenderer(const LveRenderer &) = delete;
+  LveRenderer &operator=(const LveRenderer &) = delete;
 
-			VkRenderPass getSwapChainRenderPass() const {return lveswapchain->getRenderPass();}
-			float getAspectRatio() const {return lveswapchain->extentAspectRatio();}
-			bool isFrameInProgress() const {return isFrameStarted;}
+  VkRenderPass getSwapChainRenderPass() const { return lveSwapChain->getRenderPass(); }
+  float getAspectRatio() const { return lveSwapChain->extentAspectRatio(); }
+  bool isFrameInProgress() const { return isFrameStarted; }
 
-			VkCommandBuffer getCurrentCommandBuffer() const {
-				assert(isFrameStarted && "cannot get commandbuffer when frame is not on progress");
-				return commandbuffers[currentFrameIndex];}
+  VkCommandBuffer getCurrentCommandBuffer() const {
+    assert(isFrameStarted && "Cannot get command buffer when frame not in progress");
+    return commandBuffers[currentFrameIndex];
+  }
 
-			int getFrameIndex() const {
-				assert(isFrameStarted && "cannot call while frame is not on progress");
+  int getFrameIndex() const {
+    assert(isFrameStarted && "Cannot get frame index when frame not in progress");
+    return currentFrameIndex;
+  }
 
-				return currentFrameIndex;
-			}
+  VkCommandBuffer beginFrame();
+  void endFrame();
+  void beginSwapChainRenderPass(VkCommandBuffer commandBuffer);
+  void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
 
-			VkCommandBuffer beginFrame();
-			void endFrame();
-			void beginSwapChainRenderPass(VkCommandBuffer commandBuffer);
-			void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
+ private:
+  void createCommandBuffers();
+  void freeCommandBuffers();
+  void recreateSwapChain();
 
-		private:
-			void createCommandBuffers();
-			void freeCommandBuffers();
-			void recreateSwapChain();
+  LveWindow &lveWindow;
+  LveDevice &lveDevice;
+  std::unique_ptr<LveSwapChain> lveSwapChain;
+  std::vector<VkCommandBuffer> commandBuffers;
 
-			lveWindow& lvewindow;	
-			lveDevice& lvedevice;
-			std::unique_ptr<lveSwapChain> lveswapchain;
-			std::vector<VkCommandBuffer> commandbuffers;
-
-			uint32_t currentImageIndex;
-			int currentFrameIndex;
-			bool isFrameStarted = false;
-			//uint32_t deltaTime; do in future, lastframe-nowframe
-	};
-}
+  uint32_t currentImageIndex;
+  int currentFrameIndex{0};
+  bool isFrameStarted{false};
+};
+}  // namespace lve

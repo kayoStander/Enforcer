@@ -7,23 +7,26 @@
 
 // std lib headers
 #include <memory>
-#include <string>
 #include <vector>
 
 namespace lve {
 
-class lveSwapChain {
- public:
-  static constexpr int MAX_FRAMES_IN_FLIGHT = 1;
+class LveSwapChain {
+public:
+  static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-  lveSwapChain(lveDevice &deviceRef, VkExtent2D windowExtent);
-  lveSwapChain(lveDevice &deviceRef, VkExtent2D windowExtent,std::shared_ptr<lveSwapChain> previous);
-  ~lveSwapChain();
+  LveSwapChain(LveDevice &deviceRef, VkExtent2D windowExtent);
+  LveSwapChain(LveDevice &deviceRef, VkExtent2D windowExtent,
+               std::shared_ptr<LveSwapChain> previous);
 
-  lveSwapChain(const lveSwapChain &) = delete;
-  lveSwapChain& operator=(const lveSwapChain &) = delete;
+  ~LveSwapChain();
 
-  VkFramebuffer getFrameBuffer(int index) { return swapChainFramebuffers[index]; }
+  LveSwapChain(const LveSwapChain &) = delete;
+  LveSwapChain &operator=(const LveSwapChain &) = delete;
+
+  VkFramebuffer getFrameBuffer(int index) {
+    return swapChainFramebuffers[index];
+  }
   VkRenderPass getRenderPass() { return renderPass; }
   VkImageView getImageView(int index) { return swapChainImageViews[index]; }
   size_t imageCount() { return swapChainImages.size(); }
@@ -33,19 +36,21 @@ class lveSwapChain {
   uint32_t height() { return swapChainExtent.height; }
 
   float extentAspectRatio() {
-    return static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height);
+    return static_cast<float>(swapChainExtent.width) /
+           static_cast<float>(swapChainExtent.height);
   }
   VkFormat findDepthFormat();
 
   VkResult acquireNextImage(uint32_t *imageIndex);
-  VkResult submitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex);
+  VkResult submitCommandBuffers(const VkCommandBuffer *buffers,
+                                uint32_t *imageIndex);
 
-  bool compareSwapFormat(const lveSwapChain& swapchain) const {
-	return swapchain.swapChainDepthFormat == swapChainDepthFormat &&
-		swapchain.swapChainImageFormat == swapChainImageFormat;
+  bool compareSwapFormats(const LveSwapChain &swapChain) const {
+    return swapChain.swapChainDepthFormat == swapChainDepthFormat &&
+           swapChain.swapChainImageFormat == swapChainImageFormat;
   }
 
- private:
+private:
   void init();
   void createSwapChain();
   void createImageViews();
@@ -74,11 +79,11 @@ class lveSwapChain {
   std::vector<VkImage> swapChainImages;
   std::vector<VkImageView> swapChainImageViews;
 
-  lveDevice &device;
+  LveDevice &device;
   VkExtent2D windowExtent;
 
   VkSwapchainKHR swapChain;
-  std::shared_ptr<lveSwapChain> oldSwapChain;
+  std::shared_ptr<LveSwapChain> oldSwapChain;
 
   std::vector<VkSemaphore> imageAvailableSemaphores;
   std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -87,4 +92,4 @@ class lveSwapChain {
   size_t currentFrame = 0;
 };
 
-}  // namespace lve
+} // namespace lve

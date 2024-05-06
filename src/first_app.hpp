@@ -1,32 +1,36 @@
 #pragma once
 
-#include "lve_renderer.hpp"
-#include "lve_window.hpp"
+#include "lve_descriptors.hpp"
 #include "lve_device.hpp"
 #include "lve_game_object.hpp"
+#include "lve_renderer.hpp"
+#include "lve_window.hpp"
 
+// std
 #include <memory>
-#include <vector>
 
-namespace lve{
-	class firstApp{
-		public:
-			static constexpr int WIDTH = 800;
-			static constexpr int HEIGHT = 600;
-			
-			firstApp();
-			~firstApp();
+namespace lve {
+class FirstApp {
+public:
+  static constexpr int WIDTH = 800;
+  static constexpr int HEIGHT = 600;
 
-			firstApp(const firstApp&)=delete;
-			firstApp &operator=(const firstApp&)=delete;
+  FirstApp();
+  ~FirstApp();
 
-			void run();
-		private:
-			void loadGameObjects();
+  FirstApp(const FirstApp &) = delete;
+  FirstApp &operator=(const FirstApp &) = delete;
 
-			lveWindow lvewindow{WIDTH,HEIGHT,"Hello Vulkan!"};	
-			lveDevice lvedevice{lvewindow};
-			lveRenderer lverenderer{lvewindow,lvedevice};
-			std::vector<lveGameObject> gameobjects;
-	};
-}
+  void run();
+
+private:
+  void loadGameObjects();
+
+  LveWindow lveWindow{WIDTH, HEIGHT, "Vulkan Tutorial"};
+  LveDevice lveDevice{lveWindow};
+  LveRenderer lveRenderer{lveWindow, lveDevice};
+
+  std::unique_ptr<LveDescriptorPool> globalPool{};
+  LveGameObject::Map gameObjects;
+};
+} // namespace lve
