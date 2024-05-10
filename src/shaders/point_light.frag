@@ -11,6 +11,7 @@ struct PointLight {
 layout(set = 0, binding = 0) uniform GlobalUbo {
   mat4 projection;
   mat4 view;
+  mat4 inveserView;
   vec4 ambientLightColor; // w is intensity
   PointLight pointLights[10];
   int numLights;
@@ -22,10 +23,13 @@ layout(push_constant) uniform Push {
   float radius;
 } push;
 
+const float M_PI = 3.1415926538;
+
 void main() {
-  float dis = sqrt(dot(fragOffset, fragOffset)); // distance from center
-  if (dis >= 1.0){
-      discard; // discard is only for fragmentshaders, throw away this fragment and return.
-    }
-  outColor = vec4(push.color.xyz, 1.0);
+  float distance = sqrt(dot(fragOffset, fragOffset)); // distance from center
+  if (distance >= 1.0){
+   discard; // discard is only for fragmentshaders, throw away this fragment and return.
+  }
+  float cosDistance = 0.5*(cos(distance*M_PI)+1.0);
+  outColor = vec4(push.color.xyz + cosDistance, cosDistance);
 }

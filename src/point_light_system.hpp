@@ -6,12 +6,13 @@
 
 // std
 #include <memory>
+#include <vector>
 
 namespace lve {
 class PointLightSystem {
 public:
   PointLightSystem(LveDevice &device, VkRenderPass renderPass,
-                   VkDescriptorSetLayout globalSetLayout);
+                   std::vector<VkDescriptorSetLayout> descriptorSetLayouts);
   ~PointLightSystem();
 
   PointLightSystem(const PointLightSystem &) = delete;
@@ -21,7 +22,8 @@ public:
   void render(FrameInfo &frameInfo);
 
 private:
-  void createPipelineLayout(VkDescriptorSetLayout globalSetLayout);
+  void
+  createPipelineLayout(std::vector<VkDescriptorSetLayout> descriptorSetLayouts);
   void createPipeline(VkRenderPass renderPass);
 
   LveDevice &lveDevice;

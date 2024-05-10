@@ -4,10 +4,11 @@
 #include "lve_buffer.hpp"
 #include "lve_camera.hpp"
 #include "lve_descriptors.hpp"
+#include "lve_frame_info.hpp"
 #include "lve_swap_chain.hpp"
+#include "lve_texture.hpp"
 #include "point_light_system.hpp"
 #include "simple_render_system.hpp"
-#include <utility>
 #include <vulkan/vulkan_core.h>
 
 // libs
@@ -27,6 +28,8 @@ FirstApp::FirstApp() {
                    .setMaxSets(LveSwapChain::MAX_FRAMES_IN_FLIGHT)
                    .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                                 LveSwapChain::MAX_FRAMES_IN_FLIGHT)
+                   .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                LveSwapChain::MAX_FRAMES_IN_FLIGHT)
                    .build();
   loadGameObjects();
 }
@@ -38,15 +41,26 @@ void FirstApp::run() {
       LveSwapChain::MAX_FRAMES_IN_FLIGHT);
   for (int i = 0; i < uboBuffers.size(); i++) {
     uboBuffers[i] = std::make_unique<LveBuffer>(
-        lveDevice, sizeof(GlobalUbo), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        lveDevice, sizeof(GlobalUbo), 1, // fix later
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
     uboBuffers[i]->map();
   }
 
-  auto globalSetLayout = LveDescriptorSetLayout::Builder(lveDevice)
-                             .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                         VK_SHADER_STAGE_ALL_GRAPHICS)
-                             .build();
+  auto globalSetLayout =
+      LveDescriptorSetLayout::Builder(lveDevice)
+          .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                      VK_SHADER_STAGE_ALL_GRAPHICS)
+          .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                      VK_SHADER_STAGE_FRAGMENT_BIT)
+          .build();
+
+  Texture texture = Texture(lveDevice, "textures/image.png");
+
+  VkDescriptorImageInfo imageInfo{};
+  imageInfo.sampler = texture.getSampler();
+  imageInfo.imageView = texture.getImageView();
+  imageInfo.imageLayout = texture.getImageLayout();
 
   std::vector<VkDescriptorSet> globalDescriptorSets(
       LveSwapChain::MAX_FRAMES_IN_FLIGHT);
@@ -54,15 +68,23 @@ void FirstApp::run() {
     auto bufferInfo = uboBuffers[i]->descriptorInfo();
     LveDescriptorWriter(*globalSetLayout, *globalPool)
         .writeBuffer(0, &bufferInfo)
+        .writeImage(1, &imageInfo)
         .build(globalDescriptorSets[i]);
   }
 
   SimpleRenderSystem simpleRenderSystem{
-      lveDevice, lveRenderer.getSwapChainRenderPass(),
-      globalSetLayout->getDescriptorSetLayout()};
-  PointLightSystem pointLightSystem{lveDevice,
-                                    lveRenderer.getSwapChainRenderPass(),
-                                    globalSetLayout->getDescriptorSetLayout()};
+      lveDevice,
+      lveRenderer.getSwapChainRenderPass(),
+      {globalSetLayout->getDescriptorSetLayout()}};
+  PointLightSystem pointLightSystem{
+      lveDevice,
+      lveRenderer.getSwapChainRenderPass(),
+      {globalSetLayout->getDescriptorSetLayout()}};
+  /*AtmosphereSystem atmosphereSystem{
+      lveDevice,
+      lveRenderer.getSwapChainRenderPass(),
+      {globalSetLayout->getDescriptorSetLayout()}}; // fix error later*/
+
   LveCamera camera{};
 
   auto viewerObject = LveGameObject::createGameObject();
@@ -101,14 +123,18 @@ void FirstApp::run() {
       GlobalUbo ubo{};
       ubo.projection = camera.getProjection();
       ubo.view = camera.getView();
+      ubo.inverseView = camera.getInverseView();
       pointLightSystem.update(frameInfo, ubo);
       uboBuffers[frameIndex]->writeToBuffer(&ubo);
       uboBuffers[frameIndex]->flush();
 
       // render
       lveRenderer.beginSwapChainRenderPass(commandBuffer);
+      // order matters
       simpleRenderSystem.renderGameObjects(frameInfo);
       pointLightSystem.render(frameInfo);
+      // atmosphereSystem.render(frameInfo);
+
       lveRenderer.endSwapChainRenderPass(commandBuffer);
       lveRenderer.endFrame();
     }
@@ -119,17 +145,17 @@ void FirstApp::run() {
 
 void FirstApp::loadGameObjects() {
   std::shared_ptr<LveModel> lveModel =
-      LveModel::createModelFromFile(lveDevice, "models/flat_vase.obj");
+      LveModel::createModelFromFile(lveDevice, "models/cube.obj");
   auto flatVase = LveGameObject::createGameObject();
   flatVase.model = lveModel;
-  flatVase.transform.translation = {-.5f, .5f, 0.f}; // x -y z
-  flatVase.transform.scale = {3.f, 1.5f, 3.f};
+  flatVase.transform.translation = {.0f, .0f, 0.f}; // x -y z
+  flatVase.transform.scale = {.5f, .5f, .5f};
   gameObjects.emplace(flatVase.getId(), std::move(flatVase));
 
   lveModel = LveModel::createModelFromFile(lveDevice, "models/smooth_vase.obj");
   auto smoothVase = LveGameObject::createGameObject();
   smoothVase.model = lveModel;
-  smoothVase.transform.translation = {.5f, .5f, 0.f}; // x -y z
+  smoothVase.transform.translation = {.0f, -0.5f, 0.f}; // x -y z
   smoothVase.transform.scale = {3.f, 1.5f, 3.f};
   gameObjects.emplace(smoothVase.getId(), std::move(smoothVase));
 
@@ -137,7 +163,7 @@ void FirstApp::loadGameObjects() {
   auto quad = LveGameObject::createGameObject();
   quad.model = lveModel;
   quad.transform.translation = {0.f, .5f, -0.f}; // x -y z
-  quad.transform.scale = {3.f, 1.f, 3.f};
+  quad.transform.scale = {10.f, 1.f, 10.f};
   gameObjects.emplace(quad.getId(), std::move(quad));
 
   std::vector<glm::vec3> lightColors{{1.f, .1f, .1f}, {.1f, .1f, 1.f},

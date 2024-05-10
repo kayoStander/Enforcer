@@ -28,6 +28,14 @@ struct PointLightComponent {
   float lightIntensity = 1.0f;
 };
 
+struct fogComponent {
+  glm::vec4 color = glm::vec4(
+      255.0f, 255.0f, 255.0f,
+      1.0f); // later see if starting with {} is equal to start with ()
+  float fogStart = 10.0f;
+  float fogEnd = 300.0f;
+};
+
 class LveGameObject {
 public:
   using id_t = unsigned int;
@@ -54,6 +62,7 @@ public:
 
   std::shared_ptr<LveModel> model{};
   std::unique_ptr<PointLightComponent> pointLight = nullptr;
+  std::unique_ptr<fogComponent> fog = nullptr;
 
 private:
   LveGameObject(id_t objId) : id{objId} {}

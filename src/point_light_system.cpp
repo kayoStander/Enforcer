@@ -1,5 +1,8 @@
 #include "point_light_system.hpp"
 #include "lve_frame_info.hpp"
+#include "lve_game_object.hpp"
+#include <iterator>
+#include <map>
 #include <vulkan/vulkan_core.h>
 
 // libs
@@ -20,10 +23,11 @@ struct PointLightPushCostants {
   float radius;
 };
 
-PointLightSystem::PointLightSystem(LveDevice &device, VkRenderPass renderPass,
-                                   VkDescriptorSetLayout globalSetLayout)
+PointLightSystem::PointLightSystem(
+    LveDevice &device, VkRenderPass renderPass,
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts)
     : lveDevice{device} {
-  createPipelineLayout(globalSetLayout);
+  createPipelineLayout(descriptorSetLayouts);
   createPipeline(renderPass);
 }
 
@@ -32,14 +36,12 @@ PointLightSystem::~PointLightSystem() {
 }
 
 void PointLightSystem::createPipelineLayout(
-    VkDescriptorSetLayout globalSetLayout) {
+    std::vector<VkDescriptorSetLayout> descriptorSetLayouts) {
   VkPushConstantRange pushConstantRange{};
   pushConstantRange.stageFlags =
       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
   pushConstantRange.offset = 0;
   pushConstantRange.size = sizeof(PointLightPushCostants);
-
-  std::vector<VkDescriptorSetLayout> descriptorSetLayouts{globalSetLayout};
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -60,6 +62,7 @@ void PointLightSystem::createPipeline(VkRenderPass renderPass) {
 
   PipelineConfigInfo pipelineConfig{};
   LvePipeline::defaultPipelineConfigInfo(pipelineConfig);
+  LvePipeline::enableAlphaBlending(pipelineConfig);
   pipelineConfig.attributeDescriptions.clear();
   pipelineConfig.bindingDescriptions.clear();
   pipelineConfig.renderPass = renderPass;
@@ -96,17 +99,26 @@ void PointLightSystem::update(FrameInfo &frameInfo, GlobalUbo &ubo) {
 }
 
 void PointLightSystem::render(FrameInfo &frameInfo) {
+  // sort light
+  std::map<float, LveGameObject::id_t> sorted;
+  for (auto &kv : frameInfo.gameObjects) {
+    auto &object = kv.second;
+    if (object.pointLight == nullptr) {
+      continue;
+    }
+    auto offset = frameInfo.camera.getPosition() - object.transform.translation;
+    float distanceSquared = glm::dot(offset, offset);
+    sorted[distanceSquared] = object.getId();
+  }
+
   lvePipeline->bind(frameInfo.commandBuffer);
 
   vkCmdBindDescriptorSets(frameInfo.commandBuffer,
                           VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
                           &frameInfo.globalDescriptorSet, 0, nullptr);
 
-  for (auto &kv : frameInfo.gameObjects) {
-    auto &object = kv.second;
-    if (object.pointLight == nullptr) {
-      continue;
-    }
+  for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
+    auto &object = frameInfo.gameObjects.at(it->second);
 
     PointLightPushCostants push{};
     push.position = glm::vec4(object.transform.translation, 1.f);

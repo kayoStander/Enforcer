@@ -93,7 +93,8 @@ VkResult LveSwapChain::submitCommandBuffers(const VkCommandBuffer *buffers,
   submitInfo.pWaitSemaphores = waitSemaphores;
   submitInfo.pWaitDstStageMask = waitStages;
 
-  submitInfo.commandBufferCount = 1;
+  submitInfo.commandBufferCount =
+      1; // change for vertex when having more maybe? idk
   submitInfo.pCommandBuffers = buffers;
 
   VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
