@@ -1,2 +1,2 @@
 # Enforcer
-made with Brendan Galea tutorial, WIP yet.
+made with Brendan Galea tutorial with beaumanvienna continuation, WIP yet.
