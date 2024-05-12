@@ -1,2 +1,3 @@
 # Enforcer
-made with Brendan Galea tutorial with beaumanvienna continuation, WIP yet.
+game engine wip
+some help from Brendan Galea tutorial with beaumanvienna videos
